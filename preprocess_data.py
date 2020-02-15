@@ -22,32 +22,17 @@ def preprocess(text, min_token_length = 0, join = False):
         list of cleaned words or joined string
     """
     
-    text = text.lower()
-    new_text = ''
-    safe_chars = {'a': 0, 'b': 0, 'c': 0, 'd': 0, 'e': 0, 'f': 0, 'g': 0, 'h': 0, 'i': 0, 'j': 0,
-                  'k': 0, 'l': 0, 'm': 0, 'n': 0, 'o': 0, 'p': 0, 'q': 0, 'r': 0, 's': 0, 't': 0,
-                  'u': 0, 'v': 0, 'w': 0, 'x': 0, 'y': 0, 'z': 0, '0': 0, '1': 0, '2': 0, '3': 0,
-                  '4': 0, '5': 0, '6': 0, '7': 0, '8': 0, '9': 0, ' ': 0}
-
     if type(text) != str:
         return []
-    for t in text:
-        if safe_chars.get(t) != None:
-            new_text += t
-
-    text = new_text
+    
     result = []
-
-    for token in text.lower().split():
-        if len(token) > min_token_length:
-            result.append(token)
-        elif len(token) == 1 and token.isdigit():
+    for token in gensim.utils.simple_preprocess(text, min_len = min_token_length):
+        if len(token) > 2:
             result.append(token)
 
     if join:
         return ' '.join(result)
     return result
-    
     
 def create_dictionary(train_data, no_below = 1, no_above = 0.25, keep_n = 95000, min_token_length = 0):
     
@@ -124,34 +109,27 @@ def create_lookup_tables(unique_words):
     word_to_id = {}  # word->id lookup
     id_to_word = {}  # id->word lookup
     for index, word in enumerate(sorted(list(unique_words))):
-        word_to_id[word] = index
-        id_to_word[index] = word
+        word_to_id[word] = index + 1
+        id_to_word[index + 1] = word
     return word_to_id, id_to_word
-
-def pad_word_ids(word_ids, max_length):
-    
-    """ Pad sequence of word ids to standardize length
-    
-    Args:
-    
-    Return:
-    
-    """
-    
-    return word_ids + (max_length-len(word_ids))*[0]
 
 def transform_sequence_to_word_ids(seq, word_to_id):
     
-    """ Create list of word IDs for sequence of words
-    Args:
+    """ Create list of word IDs for sequence of words, padded with zeroes and truncated to a fixed length
     
+    Args:
+        seq: list of words
+        word_to_id: dict with words as keys and corresponding ids as values
+        
     Return:
+        list of word IDs padded and truncated to length of 30 items
     """
     
     seq_word_ids = []
     for word in seq:
         seq_word_ids.append([word_to_id[word]])
     
+    # pad sequence with zeros
     for i in range(30 - len(seq_word_ids)):
         seq_word_ids.append([0])
         
@@ -159,11 +137,17 @@ def transform_sequence_to_word_ids(seq, word_to_id):
 
 def create_one_hot_vector_for_reply(reply, all_responses):
     
-    """
+    """ Constructs a one-hot vector for replies
+    
     Args:
+        reply: query item 
+        all_responses: dict containing all the template responses with their corresponding IDs
     
     Return:
+        a one-hot vector where the corresponding ID of the reply is the one-hot index
+    
     """
+    
     Y = np.zeros(len(all_responses), dtype = int)
     Y[all_responses[reply]] += 1
     return Y 
@@ -171,10 +155,15 @@ def create_one_hot_vector_for_reply(reply, all_responses):
 
 def label_preprocess(entry, responses):
     
-    """Returns integer corresponding to each response for easy comparison and classification
-    Args:
+    """ Returns integer ID corresponding to response for easy comparison and classification
     
-    Return:
+    Args:
+        entry: query item 
+        responses: dict containing all the template responses with their corresponding IDs
+        
+    Return: 
+        integer corresponding to each response     
+        
     """
     
     if responses.get(entry) != None:
@@ -184,6 +173,7 @@ def label_preprocess(entry, responses):
 
 
 def sample_pairs_offline(df, sample_size = 10):
+    
     """ Offline sampling for sentence pairs
     
     Args:
@@ -191,7 +181,7 @@ def sample_pairs_offline(df, sample_size = 10):
         sample_size: number of positive/negative samples per sentence
     
     Returns:
-        
+        a data frame of positive and negative pairs
     
     """
     
@@ -236,8 +226,7 @@ def sample_pairs_offline(df, sample_size = 10):
                                 sentences_2.append(s)
                                 labels.append(0) #negative
                                 
-                                
-    data_pairs = pd.concat([pd.Series(sentences_1), pd.Series(sentences_2), pd.Series(labels)], axis = 1)                            
+    data_pairs = pd.concat([pd.Series(sentences_1), pd.Series(sentences_2), pd.Series(labels)], axis = 1)               
     del sentences_1, sentences_2, labels
     return data_pairs.drop_duplicates()
 
