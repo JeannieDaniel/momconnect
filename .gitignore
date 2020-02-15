@@ -8,3 +8,5 @@
 !.gitignore
 # Python
 !*.py
+# Jupyter notebook
+!*.ipynb
