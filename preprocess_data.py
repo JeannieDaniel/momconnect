@@ -231,20 +231,3 @@ def sample_pairs_offline(df, sample_size = 10):
     return data_pairs.drop_duplicates()
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
