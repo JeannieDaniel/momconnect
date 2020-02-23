@@ -10,3 +10,5 @@
 !*.py
 # Jupyter notebook
 !*.ipynb
+# PDF documents
+!*.pdf
